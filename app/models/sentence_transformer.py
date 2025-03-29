@@ -2,9 +2,10 @@ from app.schemas.line_item import Recommendation, RecommendationQuery
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 class SentenceTransformerModel:
-    def __init__(self, model):
+    def __init__(self, model: SentenceTransformer):
         self.model = model
 
     async def get_recommendation(
@@ -19,14 +20,17 @@ class SentenceTransformerModel:
         new_description = recommendation_query.new_description
 
         df = pd.DataFrame([transaction.model_dump() for transaction in past_transactions])
-        df["embedding"] = df["description"].apply(lambda desc: self.model.encode(desc))
-        new_embedding = self.model.encode(new_description)
+        
+        past_descriptions = df["description"].tolist()
+        past_embeddings = self.model.encode(past_descriptions, convert_to_numpy=True)
+        df["embedding"] = list(past_embeddings)
 
-        df["similarity"] = df["embedding"].apply(
-            lambda emb: cosine_similarity([emb], [new_embedding])[0][0]
-        )
+        new_embedding = self.model.encode(new_description, convert_to_numpy=True)
 
-        best_match = df.sort_values("similarity", ascending=False).iloc[0]
+        similarities = cosine_similarity(past_embeddings, [new_embedding]).flatten()
+        df["similarity"] = similarities
+
+        best_match = df.loc[df["similarity"].idxmax()]
 
         return Recommendation(
             recommended_scope=best_match["scope"],
