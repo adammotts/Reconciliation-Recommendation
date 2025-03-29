@@ -6,6 +6,7 @@ class Recommendation(BaseModel):
     id: str
     recommended_scope: int
     recommended_emissions_factor: str
+    recommended_emissions_factor_id: str
     matched_description: str
     similarity: float
 
@@ -19,6 +20,7 @@ class UnreconciledLineItem(BaseModel):
 class LineItem(BaseModel):
     description: str
     emissions_factor: str
+    emissions_factor_id: str
     scope: int
 
 class RecommendationQuery(BaseModel):

@@ -27,6 +27,7 @@ class SentenceTransformerModel:
                 "description": t.description,
                 "scope": t.scope,
                 "emissions_factor": t.emissions_factor,
+                "emission_factor_id": t.emissions_factor_id,
                 "embedding": emb
             }
             for t, emb in zip(past_transactions, past_embeddings)
@@ -47,6 +48,7 @@ class SentenceTransformerModel:
                 id=new_ids[i],
                 recommended_scope=best_match["scope"],
                 recommended_emissions_factor=best_match["emissions_factor"],
+                recommended_emissions_factor_id=best_match["emission_factor_id"],
                 matched_description=best_match["description"],
                 similarity=best_match["similarity"]
             ))
