@@ -39,7 +39,7 @@ class SentenceTransformerModel:
             similarity=best_match["similarity"]
         )
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
 _ = model.encode("warmup")
 
 sentence_transformer_model = SentenceTransformerModel(model)
