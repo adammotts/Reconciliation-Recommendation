@@ -17,5 +17,5 @@ class LineItem(BaseModel):
     scope: int
 
 class RecommendationQuery(BaseModel):
-    past_line_items: List[LineItem]
+    past_transactions: List[LineItem]
     new_description: str
