@@ -1,8 +1,8 @@
 from app.schemas.line_item import Recommendation, RecommendationQuery
-import pandas as pd
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+from typing import List
+import pandas as pd
 
 class SentenceTransformerModel:
     def __init__(self, model: SentenceTransformer):
@@ -11,33 +11,48 @@ class SentenceTransformerModel:
     async def get_recommendation(
         self,
         recommendation_query: RecommendationQuery
-    ):
+    ) -> List[Recommendation]:
         
-        if not recommendation_query:
-            return None
-        
+        if not recommendation_query.past_transactions or not recommendation_query.unreconciled_transactions:
+            return []
+
         past_transactions = recommendation_query.past_transactions
-        new_description = recommendation_query.new_description
+        unreconciled_transactions = recommendation_query.unreconciled_transactions
 
-        df = pd.DataFrame([transaction.model_dump() for transaction in past_transactions])
-        
-        past_descriptions = df["description"].tolist()
+        past_descriptions = [t.description for t in past_transactions]
         past_embeddings = self.model.encode(past_descriptions, convert_to_numpy=True)
-        df["embedding"] = list(past_embeddings)
 
-        new_embedding = self.model.encode(new_description, convert_to_numpy=True)
+        past_df = pd.DataFrame([
+            {
+                "description": t.description,
+                "scope": t.scope,
+                "emissions_factor": t.emissions_factor,
+                "embedding": emb
+            }
+            for t, emb in zip(past_transactions, past_embeddings)
+        ])
 
-        similarities = cosine_similarity(past_embeddings, [new_embedding]).flatten()
-        df["similarity"] = similarities
+        new_descriptions = [u.description for u in unreconciled_transactions]
+        new_ids = [u.id for u in unreconciled_transactions]
+        new_embeddings = self.model.encode(new_descriptions, convert_to_numpy=True)
 
-        best_match = df.loc[df["similarity"].idxmax()]
+        recommendations = []
+        for i, new_embedding in enumerate(new_embeddings):
+            similarities = cosine_similarity(past_embeddings, [new_embedding]).flatten()
+            past_df["similarity"] = similarities
 
-        return Recommendation(
-            recommended_scope=best_match["scope"],
-            recommended_emissions_factor=best_match["emissions_factor"],
-            matched_description=best_match["description"],
-            similarity=best_match["similarity"]
-        )
+            best_match = past_df.loc[past_df["similarity"].idxmax()]
+
+            recommendations.append(Recommendation(
+                id=new_ids[i],
+                recommended_scope=best_match["scope"],
+                recommended_emissions_factor=best_match["emissions_factor"],
+                matched_description=best_match["description"],
+                similarity=best_match["similarity"]
+            ))
+
+        return recommendations
+
 
 model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
 _ = model.encode("warmup")
