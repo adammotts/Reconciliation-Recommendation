@@ -46,7 +46,7 @@ class SentenceTransformerModel:
 
             recommendations.append(Recommendation(
                 id=new_ids[i],
-                recommended_scope=best_match["scope"],
+                recommended_scope=best_match["scope"] if best_match["scope"] in {1, 2, 3} else 1,
                 recommended_emissions_factor=best_match["emissions_factor"],
                 recommended_emissions_factor_id=best_match["emission_factor_id"],
                 matched_description=best_match["description"],
